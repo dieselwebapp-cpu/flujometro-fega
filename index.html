@@ -4,275 +4,109 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reporte Técnico - Fega SRL</title>
-    
-    <!-- Librería para verificación Criptográfica (ECDSA) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.9.0/jsrsasign-all-min.js"></script>
-    <!-- Librería para generar el PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-
     <style>
-        :root {
-            --primary: #0055AA;
-            --secondary: #FFA500;
-            --text-main: #333;
-            --text-dim: #666;
-            --bg-body: #e0e5ec;
-            --bg-paper: #ffffff;
-        }
+        body { background: #e0e5ec; font-family: 'Segoe UI', Tahoma, Geneva, sans-serif; margin: 0; padding: 20px; display: flex; justify-content: center; }
         
-        body {
-            background-color: var(--bg-body);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin: 0;
-            padding: 20px;
-        }
-
-        /* --- PANTALLA DE ERROR (BLOQUEO) --- */
-        #pantalla-error {
-            display: none;
-            background-color: white;
-            padding: 40px;
-            border-radius: 10px;
-            text-align: center;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            border-top: 6px solid #dc3545;
-            max-width: 500px;
-            margin-top: 10vh;
-        }
-        #pantalla-error h1 { color: #dc3545; margin-top: 0; }
-        #pantalla-error p { color: var(--text-dim); font-size: 16px; }
-
-        /* --- CONTENIDO PRINCIPAL (OCULTO POR DEFECTO) --- */
-        #contenido-principal {
-            display: none; /* Se desbloquea solo si la firma es válida */
-            flex-direction: column;
-            align-items: center;
-            width: 100%;
-        }
-
-        .controls { margin-bottom: 20px; }
-
-        .btn-descarga {
-            background-color: var(--primary);
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            font-size: 16px;
-            border-radius: 8px;
-            cursor: pointer;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            font-weight: bold;
-        }
-        .btn-descarga:hover { background-color: #004488; }
-
-        /* Contenedor A4 Estricto para forzar 1 página */
+        /* Contenedor estricto para 1 sola hoja A4 */
         #report-sheet {
-            background-color: var(--bg-paper);
+            background: white;
             width: 210mm;
-            height: 297mm; /* Fijo, no min-height */
-            max-height: 297mm;
+            height: 295mm; /* Fijo, levemente inferior a 297 para evitar cortes */
             padding: 15mm;
             box-sizing: border-box;
             box-shadow: 0 10px 20px rgba(0,0,0,0.15);
             position: relative;
-            overflow: hidden; /* Corta cualquier excedente que genere páginas extra */
+            overflow: hidden; /* Nada puede salir de esta hoja */
         }
 
-        /* Cabecera */
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 3px solid var(--primary);
-            padding-bottom: 10px;
-            margin-bottom: 25px;
-        }
-        .header h1 { color: var(--primary); margin: 0; font-size: 28px; }
-        .header p { margin: 5px 0 0 0; color: var(--text-dim); }
-
-        .badge-valid {
-            padding: 8px 15px;
-            border-radius: 5px;
-            font-weight: bold;
-            font-size: 14px;
-            background-color: #d4edda; 
-            color: #155724; 
-            border: 1px solid #c3e6cb;
-        }
-
-        /* Secciones */
-        .section-title {
-            font-size: 18px;
-            color: var(--secondary);
-            border-bottom: 1px solid #eee;
-            padding-bottom: 5px;
-            margin-top: 20px;
-            margin-bottom: 15px;
-            text-transform: uppercase;
-        }
-
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #0055AA; padding-bottom: 10px; margin-bottom: 25px; }
+        .header h1 { color: #0055AA; margin: 0; font-size: 28px; }
+        .badge-valid { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; padding: 8px 15px; border-radius: 5px; font-weight: bold; font-size: 14px; }
+        
+        .section-title { font-size: 18px; color: #FFA500; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-top: 20px; margin-bottom: 15px; text-transform: uppercase; }
         .grid-info { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-
-        .info-box {
-            background-color: #f8f9fa;
-            padding: 12px;
-            border-radius: 6px;
-            border-left: 4px solid var(--primary);
-        }
-        .info-box span { display: block; }
-        .info-label { font-size: 12px; color: var(--text-dim); text-transform: uppercase; }
-        .info-value { font-size: 18px; color: var(--text-main); font-weight: bold; margin-top: 5px;}
-
-        /* Resultados Destacados */
+        .info-box { background: #f8f9fa; padding: 12px; border-radius: 6px; border-left: 4px solid #0055AA; }
+        .info-label { font-size: 12px; color: #666; text-transform: uppercase; display: block; }
+        .info-value { font-size: 18px; color: #333; font-weight: bold; margin-top: 5px; display: block;}
+        
         .results-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 20px; }
-        .result-card {
-            background-color: white;
-            border: 2px solid #eee;
-            padding: 20px;
-            text-align: center;
-            border-radius: 8px;
-        }
-        .result-card.highlight { border-color: var(--secondary); background-color: #fffdf5; }
-        .result-card .lbl { font-size: 14px; color: var(--text-dim); }
-        .result-card .val { font-size: 32px; font-weight: bold; color: var(--primary); margin: 10px 0; }
-        .result-card .unit { font-size: 14px; color: var(--text-dim); }
+        .result-card { background: white; border: 2px solid #eee; padding: 20px; text-align: center; border-radius: 8px; }
+        .result-card.highlight { border-color: #FFA500; background: #fffdf5; }
+        .result-card .val { font-size: 32px; font-weight: bold; color: #0055AA; margin: 10px 0; }
+        
+        .footer { position: absolute; bottom: 15mm; left: 15mm; right: 15mm; font-size: 11px; color: #888; text-align: center; border-top: 1px solid #eee; padding-top: 10px; }
 
-        .footer {
-            position: absolute;
-            bottom: 15mm;
-            left: 15mm;
-            right: 15mm;
-            font-size: 11px;
-            color: #888;
-            text-align: center;
-            border-top: 1px solid #eee;
-            padding-top: 10px;
-        }
+        .btn-descarga { background: #0055AA; color: white; border: none; padding: 12px 24px; font-size: 16px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-bottom: 20px; width: 100%; max-width: 210mm;}
 
-        /* Adaptación a la vista en pantalla (El PDF interno será siempre A4) */
-        @media screen and (max-width: 850px) {
-            #report-sheet {
-                transform: scale(0.9);
-                transform-origin: top center;
-                margin-bottom: -10%;
-            }
-        }
-        @media screen and (max-width: 600px) {
-            #report-sheet {
-                transform: scale(0.65);
-                transform-origin: top center;
-                margin-bottom: -30%;
-            }
-        }
+        @media screen and (max-width: 850px) { #report-sheet { transform: scale(0.9); transform-origin: top center; margin-bottom: -10%; } }
+        @media screen and (max-width: 600px) { #report-sheet { transform: scale(0.65); transform-origin: top center; margin-bottom: -30%; } }
     </style>
 </head>
 <body>
 
-    <!-- 1. PANTALLA DE BLOQUEO -->
-    <div id="pantalla-error">
-        <h1>❌ ACCESO DENEGADO</h1>
-        <p>El reporte no contiene una firma válida, la URL está incompleta o los parámetros han sido alterados.</p>
-        <p style="font-size: 12px; color: #999;">Solo se permiten reportes generados directamente desde el Equipo Oficial Fega SRL.</p>
-    </div>
-
-    <!-- 2. CONTENIDO PROTEGIDO -->
-    <div id="contenido-principal">
-        <div class="controls">
-            <button class="btn-descarga" onclick="generarPDF()">📥 Guardar PDF (1 Página)</button>
-        </div>
-
-        <div id="report-sheet">
-            <div class="header">
-                <div>
-                    <h1>FEGA SRL</h1>
-                    <p>Reporte Técnico de Flujometría Digital</p>
-                    <p style="font-size: 12px; margin-top: 8px;" id="fecha-reporte"></p>
-                </div>
-                <div class="badge-valid">
-                    ✔ ORIGEN AUTÉNTICO
-                </div>
-            </div>
-
-            <div class="section-title">Datos del Componente</div>
-            <div class="grid-info">
-                <div class="info-box">
-                    <span class="info-label">Tipo de Componente</span>
-                    <span class="info-value" id="val-tipo">---</span>
-                </div>
-                <div class="info-box">
-                    <span class="info-label">Aplicación</span>
-                    <span class="info-value" id="val-app">---</span>
-                </div>
-                <div class="info-box">
-                    <span class="info-label">Marca</span>
-                    <span class="info-value" id="val-marca">---</span>
-                </div>
-                <div class="info-box">
-                    <span class="info-label">Modelo / Código</span>
-                    <span class="info-value" id="val-modelo">---</span>
-                </div>
-            </div>
-
-            <div class="section-title">Parámetros de Referencia</div>
-            <div class="grid-info">
-                <div class="info-box" style="border-left-color: #28a745;">
-                    <span class="info-label">Rango Esperado Mínimo</span>
-                    <span class="info-value" id="val-rmin">0.0 L/min</span>
-                </div>
-                <div class="info-box" style="border-left-color: #dc3545;">
-                    <span class="info-label">Rango Esperado Máximo</span>
-                    <span class="info-value" id="val-rmax">0.0 L/min</span>
-                </div>
-            </div>
-
-            <div class="section-title">Resultados del Ensayo</div>
-            <div class="results-grid">
-                <div class="result-card">
-                    <div class="lbl">Duración de Prueba</div>
-                    <div class="val" id="val-segundos">0</div>
-                    <div class="unit">Segundos</div>
-                </div>
-                <div class="result-card">
-                    <div class="lbl">Caudal Pico</div>
-                    <div class="val" id="val-pico">0.00</div>
-                    <div class="unit">L/min</div>
-                </div>
-                <div class="result-card highlight">
-                    <div class="lbl">Caudal Promedio Estable</div>
-                    <div class="val" id="val-promedio">0.00</div>
-                    <div class="unit">L/min</div>
-                </div>
-            </div>
-            
-            <div class="footer">
-                Documento generado automáticamente por Equipo Flujómetro Fega SRL.<br>
-                La integridad, origen e inalterabilidad de este documento están protegidos mediante Criptografía ECDSA SHA-256.
-            </div>
-        </div>
-    </div>
+    <!-- DOM TOTALMENTE VACÍO (Inyectable por seguridad) -->
+    <div id="app-root" style="width: 100%; display: flex; flex-direction: column; align-items: center;"></div>
 
     <script>
         // ==============================================================
-        // LLAVE PÚBLICA DE REPORTES (Reemplaza con el contenido de public.pem)
-        // NOTA: En JS usamos comillas invertidas ` para permitir saltos de línea.
+        // LLAVE PÚBLICA DE REPORTES
         // ==============================================================
         const publicKeyPEM = `-----BEGIN PUBLIC KEY-----
-MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE2rds4avoqRboXTU0CnAkxar5xoOG
-AMLU7goiacG7ATrllhBBthcIFikPVOyrQpWNo1usjypX1pQ6LMIQgHhWLg==
+// *** AQUI_VA_TU_CLAVE_PUBLICA_EXACTA_CON_SUS_SALTOS_DE_LINEA ***
 -----END PUBLIC KEY-----`;
         // ==============================================================
 
-        function mostrarError() {
-            document.getElementById('pantalla-error').style.display = 'block';
-            document.getElementById('contenido-principal').style.display = 'none';
+        function renderError() {
+            document.getElementById('app-root').innerHTML = `
+                <div style="background: white; padding: 40px; border-radius: 10px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border-top: 6px solid #dc3545; max-width: 500px; margin-top: 10vh;">
+                    <h1 style="color: #dc3545; margin-top: 0;">❌ ACCESO DENEGADO</h1>
+                    <p style="color: #666; font-size: 16px;">Este reporte no existe, la firma criptográfica es inválida o los datos fueron alterados.</p>
+                </div>
+            `;
         }
 
-        function mostrarReporte() {
-            document.getElementById('pantalla-error').style.display = 'none';
-            document.getElementById('contenido-principal').style.display = 'flex';
+        function renderReporteAutorizado(datos) {
+            document.getElementById('app-root').innerHTML = `
+                <button class="btn-descarga" onclick="generarPDF()">📥 Descargar PDF Oficial (1 Página)</button>
+                <div id="report-sheet">
+                    <div class="header">
+                        <div>
+                            <h1>FEGA SRL</h1>
+                            <p>Reporte Técnico de Flujometría Digital</p>
+                            <p style="font-size: 12px; margin-top: 8px;">Fecha de Ensayo: ${new Date().toLocaleString()}</p>
+                        </div>
+                        <div class="badge-valid">✔ ORIGEN AUTÉNTICO</div>
+                    </div>
+
+                    <div class="section-title">Datos del Componente</div>
+                    <div class="grid-info">
+                        <div class="info-box"><span class="info-label">Tipo</span><span class="info-value">${datos.t}</span></div>
+                        <div class="info-box"><span class="info-label">Aplicación</span><span class="info-value">${datos.ap}</span></div>
+                        <div class="info-box"><span class="info-label">Marca</span><span class="info-value">${datos.ma}</span></div>
+                        <div class="info-box"><span class="info-label">Modelo / Código</span><span class="info-value">${datos.mo}</span></div>
+                    </div>
+
+                    <div class="section-title">Parámetros de Referencia</div>
+                    <div class="grid-info">
+                        <div class="info-box" style="border-left-color: #28a745;"><span class="info-label">Rango Esperado Mínimo</span><span class="info-value">${datos.rmn}</span></div>
+                        <div class="info-box" style="border-left-color: #dc3545;"><span class="info-label">Rango Esperado Máximo</span><span class="info-value">${datos.rmx}</span></div>
+                    </div>
+
+                    <div class="section-title">Resultados del Ensayo</div>
+                    <div class="results-grid">
+                        <div class="result-card"><div style="font-size: 14px; color: #666;">Duración de Prueba</div><div class="val">${datos.sg}</div><div style="font-size: 14px; color: #666;">Segundos</div></div>
+                        <div class="result-card"><div style="font-size: 14px; color: #666;">Caudal Pico</div><div class="val">${datos.pk}</div><div style="font-size: 14px; color: #666;">L/min</div></div>
+                        <div class="result-card highlight"><div style="font-size: 14px; color: #666;">Promedio Estable</div><div class="val">${datos.avg}</div><div style="font-size: 14px; color: #666;">L/min</div></div>
+                    </div>
+                    
+                    <div class="footer">
+                        Documento generado automáticamente por Equipo Oficial Flujómetro Fega SRL.<br>
+                        La integridad e inalterabilidad de los valores numéricos están garantizadas por Criptografía ECDSA SHA-256.
+                    </div>
+                </div>
+            `;
         }
 
         function decodificarTipos(t) {
@@ -282,80 +116,61 @@ AMLU7goiacG7ATrllhBBthcIFikPVOyrQpWNo1usjypX1pQ6LMIQgHhWLg==
             return 'Desconocido';
         }
 
-        function procesarDatos() {
-            const queryString = window.location.search;
-            
-            // Si no hay parámetros, bloqueamos directamente
-            if(!queryString) {
-                mostrarError();
-                return;
-            }
+        window.onload = function() {
+            const qs = window.location.search;
+            if (!qs || !qs.includes('&s=')) return renderError();
 
-            const urlParams = new URLSearchParams(queryString);
-            const firmaB64URL = urlParams.get('s');
+            const partes = qs.substring(1).split('&s=');
+            const urlRawData = partes[0];
+            const firmaB64URL = partes[1];
 
-            // Si falla la generación en el ESP o no hay firma, bloqueamos
-            if(!firmaB64URL || firmaB64URL === 'ERROR_LLAVE') {
-                mostrarError();
-                return;
-            }
+            if (!firmaB64URL || firmaB64URL.startsWith('ERROR_LLAVE')) return renderError();
 
-            // Aislamos los datos exactos que firmó el ESP32
-            const rawQueryString = queryString.substring(1).split('&s=')[0];
+            // Decodificamos %20 a espacios reales para que el SHA-256 coincida exacto con el ESP32
+            const payloadDecodificado = decodeURIComponent(urlRawData);
 
-            // Reconstruimos el Base64
             let b64Firma = firmaB64URL.replace(/-/g, '+').replace(/_/g, '/');
-            while(b64Firma.length % 4 !== 0) b64Firma += '=';
+            while (b64Firma.length % 4 !== 0) b64Firma += '=';
 
             try {
                 const hexFirma = KJUR.crypto.Util.base64ToHex(b64Firma);
                 const sig = new KJUR.crypto.Signature({"alg": "SHA256withECDSA"});
                 sig.init(publicKeyPEM);
-                sig.updateString(rawQueryString);
-                
-                const esValido = sig.verify(hexFirma);
+                sig.updateString(payloadDecodificado); // Sometemos a prueba el payload
 
-                if (esValido) {
-                    // Solo si la criptografía dice que es legítimo, llenamos datos y mostramos
-                    document.getElementById('fecha-reporte').innerText = "Fecha de Emisión: " + new Date().toLocaleString();
-                    document.getElementById('val-tipo').innerText = decodificarTipos(urlParams.get('t'));
-                    document.getElementById('val-marca').innerText = urlParams.get('ma') || 'N/A';
-                    document.getElementById('val-modelo').innerText = urlParams.get('mo') || 'N/A';
-                    document.getElementById('val-app').innerText = urlParams.get('ap') || 'N/A';
-                    document.getElementById('val-rmin').innerText = (urlParams.get('rmn') || '0.0') + ' L/min';
-                    document.getElementById('val-rmax').innerText = (urlParams.get('rmx') || '0.0') + ' L/min';
-                    document.getElementById('val-pico').innerText = urlParams.get('pk') || '0.00';
-                    document.getElementById('val-promedio').innerText = urlParams.get('avg') || '0.00';
-                    document.getElementById('val-segundos').innerText = urlParams.get('sg') || '0';
-                    
-                    mostrarReporte();
+                if (sig.verify(hexFirma)) {
+                    // Solo si pasó, extraemos los datos formales para pintar la UI
+                    const params = new URLSearchParams(payloadDecodificado);
+                    renderReporteAutorizado({
+                        t: decodificarTipos(params.get('t')),
+                        ma: params.get('ma') || 'N/A',
+                        mo: params.get('mo') || 'N/A',
+                        ap: params.get('ap') || 'N/A',
+                        rmn: (params.get('rmn') || '0.0') + ' L/min',
+                        rmx: (params.get('rmx') || '0.0') + ' L/min',
+                        pk: params.get('pk') || '0.00',
+                        avg: params.get('avg') || '0.00',
+                        sg: params.get('sg') || '0'
+                    });
                 } else {
-                    // Intento de falsificación
-                    mostrarError();
+                    renderError();
                 }
-            } catch (error) {
-                console.error("Error criptográfico:", error);
-                mostrarError();
+            } catch (e) {
+                renderError();
             }
-        }
+        };
 
         function generarPDF() {
             const elemento = document.getElementById('report-sheet');
-            
             const opciones = {
                 margin:       0,
                 filename:     'Reporte_Fega_' + (new URLSearchParams(window.location.search).get('mo') || 'Libre') + '.pdf',
                 image:        { type: 'jpeg', quality: 1.0 },
                 html2canvas:  { scale: 2, useCORS: true },
-                // Configuración para forzar estrictamente A4 en 1 página
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                pagebreak:    { mode:['avoid-all'] } 
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
             };
-
             html2pdf().set(opciones).from(elemento).save();
         }
-
-        window.onload = procesarDatos;
     </script>
 </body>
 </html>
