@@ -2,71 +2,120 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Reporte Técnico - Fega SRL</title>
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.9.0/jsrsasign-all-min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     
     <style>
-        body { background: #e0e5ec; font-family: 'Segoe UI', Tahoma, Geneva, sans-serif; margin: 0; padding: 20px; display: flex; justify-content: center; }
-        
-        #report-sheet {
-            background: white; width: 210mm; height: 295mm; padding: 12mm 15mm; 
-            box-sizing: border-box; box-shadow: 0 10px 20px rgba(0,0,0,0.15);
-            position: relative; overflow: hidden; 
+        /* === ESTILOS BASE Y RESPONSIVOS (PARA PANTALLA) === */
+        body { 
+            background: #e0e5ec; 
+            font-family: 'Segoe UI', Tahoma, Geneva, sans-serif; 
+            margin: 0; 
+            padding: 15px; 
+            display: flex; 
+            flex-direction: column;
+            align-items: center; 
         }
 
-        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #0055AA; padding-bottom: 10px; margin-bottom: 15px; }
-        .header h1 { color: #0055AA; margin: 0; font-size: 28px; }
-        .badge-valid { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; padding: 8px 15px; border-radius: 5px; font-weight: bold; font-size: 14px; }
-        
-        .section-title { font-size: 16px; color: #FFA500; border-bottom: 1px solid #eee; padding-bottom: 4px; margin-top: 15px; margin-bottom: 10px; text-transform: uppercase; font-weight: bold; }
-        .grid-info { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .info-box { background: #f8f9fa; padding: 10px; border-radius: 6px; border-left: 4px solid #0055AA; }
-        .info-label { font-size: 11px; color: #666; text-transform: uppercase; display: block; }
-        .info-value { font-size: 16px; color: #333; font-weight: bold; margin-top: 3px; display: block; word-wrap: break-word;}
-        
-        .results-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 15px; }
-        .result-card { background: white; border: 2px solid #eee; padding: 15px; text-align: center; border-radius: 8px; }
-        .result-card.highlight { border-color: #FFA500; background: #fffdf5; }
-        .result-card .val { font-size: 28px; font-weight: bold; color: #0055AA; margin: 8px 0; }
-        
-        .footer { position: absolute; bottom: 12mm; left: 15mm; right: 15mm; font-size: 10px; color: #888; text-align: center; border-top: 1px solid #eee; padding-top: 8px; }
+        #app-root { width: 100%; max-width: 800px; }
 
-        .btn-descarga { background: #0055AA; color: white; border: none; padding: 12px 24px; font-size: 16px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-bottom: 20px; width: 100%; max-width: 210mm; transition: background 0.3s;}
+        .btn-descarga { 
+            background: #0055AA; color: white; border: none; padding: 15px 20px; 
+            font-size: 16px; border-radius: 8px; cursor: pointer; font-weight: bold; 
+            margin-bottom: 20px; width: 100%; transition: background 0.3s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
         .btn-descarga:hover { background: #004488; }
 
+        #report-sheet {
+            background: white; 
+            width: 100%; 
+            padding: 25px 20px; 
+            box-sizing: border-box; 
+            box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+            border-radius: 8px;
+            position: relative; 
+        }
+
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #0055AA; padding-bottom: 15px; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
+        .header-title h1 { color: #0055AA; margin: 0; font-size: 24px; }
+        .header-title p { margin: 5px 0 0 0; font-size: 14px; color: #444; }
+        .badge-valid { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; padding: 6px 12px; border-radius: 5px; font-weight: bold; font-size: 12px; white-space: nowrap; }
+        
+        .section-title { font-size: 16px; color: #FFA500; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-top: 25px; margin-bottom: 15px; text-transform: uppercase; font-weight: bold; }
+        
+        .grid-info { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .info-box { background: #f8f9fa; padding: 12px; border-radius: 6px; border-left: 4px solid #0055AA; }
+        .info-label { font-size: 11px; color: #666; text-transform: uppercase; display: block; margin-bottom: 4px;}
+        .info-value { font-size: 15px; color: #222; font-weight: bold; display: block; word-wrap: break-word;}
+        
+        .results-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px; }
+        .result-card { background: white; border: 2px solid #eee; padding: 15px 10px; text-align: center; border-radius: 8px; }
+        .result-card.highlight { border-color: #FFA500; background: #fffdf5; }
+        .result-card .val { font-size: 24px; font-weight: bold; color: #0055AA; margin: 8px 0; }
+        .result-card .lbl { font-size: 12px; color: #666; }
+        
+        .footer { margin-top: 30px; font-size: 10px; color: #888; text-align: center; border-top: 1px solid #eee; padding-top: 15px; }
+
+        /* === ADAPTACIÓN PARA CELULARES === */
+        @media screen and (max-width: 600px) {
+            body { padding: 10px; }
+            .grid-info { grid-template-columns: 1fr; } /* Se apilan los datos en vertical */
+            .header { flex-direction: column; align-items: flex-start; }
+            .results-grid { grid-template-columns: 1fr; } /* Las tarjetas de resultado se apilan */
+            .result-card { padding: 20px; }
+            #report-sheet { padding: 15px; }
+        }
+
+        /* === ESTILOS ESTRICTOS SÓLO PARA EL PDF === */
+        .pdf-mode {
+            width: 210mm !important;
+            min-height: 295mm !important;
+            max-width: none !important;
+            padding: 15mm 20mm !important; /* Márgenes perfectos para hoja A4 */
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            margin: 0 !important;
+            transform: scale(1) !important;
+        }
+        /* Forzamos a que en el PDF sí haya columnas, sin importar la pantalla del celular */
+        .pdf-mode .grid-info { grid-template-columns: 1fr 1fr !important; }
+        .pdf-mode .results-grid { grid-template-columns: repeat(3, 1fr) !important; }
+        .pdf-mode .header { flex-direction: row !important; align-items: center !important; }
+        .pdf-mode .footer { position: absolute; bottom: 15mm; left: 20mm; right: 20mm; margin-top: 0; }
+
+        /* === ESTILOS DEL MODAL POPUP === */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(3px); }
         .modal-box { background: white; width: 90%; max-width: 400px; padding: 25px; border-radius: 12px; box-shadow: 0 15px 30px rgba(0,0,0,0.3); }
         .modal-box h2 { color: #0055AA; margin-top: 0; font-size: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
         .modal-box label { display: block; font-size: 13px; color: #555; margin-bottom: 5px; font-weight: bold; }
-        .modal-box input, .modal-box textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; margin-bottom: 15px; box-sizing: border-box; font-family: inherit; }
-        .modal-box textarea { resize: vertical; max-height: 100px; }
-        .modal-buttons { display: flex; justify-content: flex-end; gap: 10px; }
-        .btn-cancel { background: #888; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; }
-        .btn-confirm { background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; }
-
-        @media screen and (max-width: 850px) { #report-sheet { transform: scale(0.9); transform-origin: top center; margin-bottom: -10%; } }
-        @media screen and (max-width: 600px) { #report-sheet { transform: scale(0.65); transform-origin: top center; margin-bottom: -30%; } }
+        .modal-box input, .modal-box textarea { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; margin-bottom: 15px; box-sizing: border-box; font-family: inherit; font-size: 14px;}
+        .modal-box textarea { resize: vertical; max-height: 120px; }
+        .modal-buttons { display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;}
+        .btn-cancel { background: #888; color: white; border: none; padding: 12px 15px; border-radius: 6px; cursor: pointer; font-weight: bold;}
+        .btn-confirm { background: #28a745; color: white; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <div id="app-root" style="width: 100%; display: flex; flex-direction: column; align-items: center;"></div>
+    <div id="app-root"></div>
 
     <div id="clientModal" class="modal-overlay">
         <div class="modal-box">
-            <h2>Datos Adicionales (Opcional)</h2>
-            <p style="font-size: 13px; color: #666; margin-bottom: 15px;">Complete estos datos para que aparezcan impresos en el PDF.</p>
+            <h2>Datos del Cliente</h2>
+            <p style="font-size: 13px; color: #666; margin-bottom: 15px;">Estos datos se imprimirán en el certificado PDF (Opcional).</p>
             <label>Nombre del Cliente / Empresa</label>
             <input type="text" id="cliName" placeholder="Ej: Transportes del Norte">
             <label>Teléfono de Contacto</label>
             <input type="text" id="cliPhone" placeholder="Ej: +54 9 11 1234-5678">
             <label>Observaciones del Ensayo</label>
-            <textarea id="cliObs" rows="3" placeholder="Ej: Se reemplazó el filtro interno..."></textarea>
+            <textarea id="cliObs" rows="3" placeholder="Ej: Se reemplazó el filtro interno y se calibró..."></textarea>
             <div class="modal-buttons">
                 <button class="btn-cancel" onclick="cerrarModal()">Cancelar</button>
-                <button class="btn-confirm" onclick="procesarYGenerarPDF()">✔ Generar Archivo</button>
+                <button class="btn-confirm" onclick="procesarYGenerarPDF()">✔ Generar PDF</button>
             </div>
         </div>
     </div>
@@ -79,7 +128,6 @@
             "aN1NOedS4Zt+6PyZPeB+yeWiJsttCNZ6KncgLJxWnkVfj0zStekrOwUPzg==\n" +
             "-----END PUBLIC KEY-----\n";
 
-        // Función nativa para convertir Base64 a Hexadecimal (A prueba de fallos)
         function base64ToHex(str) {
             const raw = window.atob(str);
             let result = '';
@@ -92,10 +140,10 @@
 
         function renderError(detalle) {
             document.getElementById('app-root').innerHTML = `
-                <div style="background: white; padding: 40px; border-radius: 10px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border-top: 6px solid #dc3545; max-width: 500px; margin-top: 10vh;">
-                    <h1 style="color: #dc3545; margin-top: 0;">❌ ACCESO DENEGADO</h1>
-                    <p style="color: #666; font-size: 16px;">Este reporte no existe, la firma criptográfica es inválida o los datos fueron alterados.</p>
-                    <div style="margin-top: 20px; padding: 10px; background: #ffeeee; border: 1px solid #ffcccc; color: #aa0000; font-size: 12px; border-radius: 5px; text-align: left;">
+                <div style="background: white; padding: 40px; border-radius: 10px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border-top: 6px solid #dc3545; max-width: 500px; margin: 10vh auto;">
+                    <h1 style="color: #dc3545; margin-top: 0; font-size: 24px;">❌ ACCESO DENEGADO</h1>
+                    <p style="color: #666; font-size: 15px;">Este reporte no existe o la firma criptográfica es inválida.</p>
+                    <div style="margin-top: 20px; padding: 10px; background: #ffeeee; border: 1px solid #ffcccc; color: #aa0000; font-size: 12px; border-radius: 5px; text-align: left; word-break: break-all;">
                         <strong>DIAGNÓSTICO TÉCNICO:</strong><br>${detalle}
                     </div>
                 </div>
@@ -104,17 +152,19 @@
 
         function renderReporteAutorizado(datos) {
             document.getElementById('app-root').innerHTML = `
-                <button class="btn-descarga" onclick="abrirModal()">📥 Agregar Datos y Descargar PDF</button>
+                <button class="btn-descarga" onclick="abrirModal()">📥 Completar Cliente y Descargar PDF</button>
                 <div id="report-sheet">
                     <div class="header">
-                        <div>
+                        <div class="header-title">
                             <h1>FEGA SRL</h1>
-                            <p style="margin: 5px 0;">Reporte Técnico de Flujometría Digital</p>
-                            <p style="font-size: 12px; color: #555; margin-top: 5px;">Fecha de Ensayo: ${new Date().toLocaleString()}</p>
+                            <p>Reporte Técnico de Flujometría Digital</p>
+                            <p style="font-size: 11px; color: #777;">Fecha de Ensayo: ${new Date().toLocaleString()}</p>
                         </div>
                         <div class="badge-valid">✔ ORIGEN AUTÉNTICO</div>
                     </div>
+                    
                     <div id="client-section-container" style="display: none;"></div>
+                    
                     <div class="section-title">Datos del Componente</div>
                     <div class="grid-info">
                         <div class="info-box"><span class="info-label">Marca</span><span class="info-value">${datos.ma}</span></div>
@@ -122,17 +172,20 @@
                         <div class="info-box"><span class="info-label">Aplicación</span><span class="info-value">${datos.ap}</span></div>
                         <div class="info-box"><span class="info-label">Tipo</span><span class="info-value">${datos.t}</span></div>
                     </div>
+                    
                     <div class="section-title">Parámetros de Referencia</div>
                     <div class="grid-info">
                         <div class="info-box" style="border-left-color: #28a745;"><span class="info-label">Rango Esperado Mínimo</span><span class="info-value">${datos.rmn}</span></div>
                         <div class="info-box" style="border-left-color: #dc3545;"><span class="info-label">Rango Esperado Máximo</span><span class="info-value">${datos.rmx}</span></div>
                     </div>
+                    
                     <div class="section-title">Resultados del Ensayo</div>
                     <div class="results-grid">
-                        <div class="result-card"><div style="font-size: 13px; color: #666;">Duración Prueba</div><div class="val">${datos.sg}</div><div style="font-size: 13px; color: #666;">Segundos</div></div>
-                        <div class="result-card"><div style="font-size: 13px; color: #666;">Caudal Pico</div><div class="val">${datos.pk}</div><div style="font-size: 13px; color: #666;">L/min</div></div>
-                        <div class="result-card highlight"><div style="font-size: 13px; color: #666;">Promedio Estable</div><div class="val">${datos.avg}</div><div style="font-size: 13px; color: #666;">L/min</div></div>
+                        <div class="result-card"><div class="lbl">Duración Prueba</div><div class="val">${datos.sg}</div><div class="lbl">Segundos</div></div>
+                        <div class="result-card"><div class="lbl">Caudal Pico</div><div class="val">${datos.pk}</div><div class="lbl">L/min</div></div>
+                        <div class="result-card highlight"><div class="lbl">Promedio Estable</div><div class="val">${datos.avg}</div><div class="lbl">L/min</div></div>
                     </div>
+                    
                     <div class="footer">
                         Documento generado automáticamente por Equipo Oficial Flujómetro Fega SRL.<br>
                         La integridad e inalterabilidad de los valores numéricos están garantizadas por Criptografía ECDSA SHA-256.
@@ -160,10 +213,10 @@
             if (nom || tel || obs) {
                 container.innerHTML = `
                     <div class="section-title" style="color: #0055AA;">Datos del Cliente</div>
-                    <div class="grid-info" style="margin-bottom: 15px;">
+                    <div class="grid-info" style="margin-bottom: 25px;">
                         <div class="info-box"><span class="info-label">Cliente / Empresa</span><span class="info-value">${nom || '-'}</span></div>
                         <div class="info-box"><span class="info-label">Teléfono</span><span class="info-value">${tel || '-'}</span></div>
-                        ${obs ? `<div class="info-box" style="grid-column: span 2;"><span class="info-label">Observaciones</span><span class="info-value" style="font-size: 14px; font-weight: normal;">${obs}</span></div>` : ''}
+                        ${obs ? `<div class="info-box" style="grid-column: 1 / -1;"><span class="info-label">Observaciones</span><span class="info-value" style="font-size: 13px; font-weight: normal; white-space: pre-wrap;">${obs}</span></div>` : ''}
                     </div>
                 `;
                 container.style.display = 'block';
@@ -171,25 +224,39 @@
 
             cerrarModal();
 
+            // Transformamos el div a formato estricto A4
+            const elemento = document.getElementById('report-sheet');
+            elemento.classList.add('pdf-mode');
+
+            // Timeout para dar tiempo al navegador a aplicar la clase CSS antes de la foto
             setTimeout(() => {
-                const elemento = document.getElementById('report-sheet');
                 const nombreArchivo = 'Reporte_Fega_' + (new URLSearchParams(window.location.search).get('mo') || 'Libre') + '.pdf';
-                const opciones = { margin: 0, filename: nombreArchivo, image: { type: 'jpeg', quality: 1.0 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
-                html2pdf().set(opciones).from(elemento).save();
+                const opciones = { 
+                    margin: 0, 
+                    filename: nombreArchivo, 
+                    image: { type: 'jpeg', quality: 1.0 }, 
+                    html2canvas: { scale: 2, useCORS: true, windowWidth: 800 }, // Forzamos un ancho virtual para evitar cortes móviles
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } 
+                };
+                
+                html2pdf().set(opciones).from(elemento).save().then(() => {
+                    // Restauramos el diseño móvil una vez descargado el PDF
+                    elemento.classList.remove('pdf-mode');
+                });
             }, 300);
         }
 
         window.onload = function() {
             const qs = window.location.search;
             
-            if (!qs) return renderError("La URL no contiene datos. Debes abrir esta página escaneando el código QR generado por el equipo, no haciendo doble clic en el archivo HTML.");
-            if (!qs.includes('&s=')) return renderError("La URL no contiene una firma válida (&s= no encontrado).");
+            if (!qs) return renderError("La URL no contiene datos.");
+            if (!qs.includes('&s=')) return renderError("Firma inválida.");
 
             const partes = qs.substring(1).split('&s=');
             const urlRawData = partes[0];
             let firmaB64URL = partes[1];
 
-            if (!firmaB64URL || firmaB64URL.startsWith('ERROR_LLAVE')) return renderError("El ESP32 reportó un fallo al generar la firma: " + firmaB64URL);
+            if (!firmaB64URL || firmaB64URL.startsWith('ERROR_LLAVE')) return renderError("Fallo de hardware.");
 
             const payloadDecodificado = decodeURIComponent(urlRawData);
 
@@ -198,16 +265,9 @@
             while (b64Firma.length % 4 !== 0) b64Firma += '=';
 
             try {
-                // AQUÍ ESTÁ EL ARREGLO: Usamos nuestra propia función base64ToHex
                 const hexFirma = base64ToHex(b64Firma);
                 const sig = new KJUR.crypto.Signature({"alg": "SHA256withECDSA"});
-                
-                try {
-                    sig.init(publicKeyPEM);
-                } catch (errKey) {
-                    return renderError("Fallo al inicializar la llave pública en JavaScript. Revisa el formato de la constante publicKeyPEM.");
-                }
-                
+                sig.init(publicKeyPEM);
                 sig.updateString(payloadDecodificado); 
 
                 if (sig.verify(hexFirma)) {
@@ -224,10 +284,10 @@
                         sg: params.get('sg') || '0'
                     });
                 } else {
-                    renderError("La firma matemática ha sido rechazada. Los datos de la URL no coinciden con la firma del equipo. (" + payloadDecodificado + ")");
+                    renderError("Firma rechazada. Datos alterados.");
                 }
             } catch (e) {
-                renderError("Error interno al procesar la criptografía: " + e.message);
+                renderError(e.message);
             }
         };
     </script>
