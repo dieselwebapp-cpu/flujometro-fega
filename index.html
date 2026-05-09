@@ -4,23 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reporte Técnico - Fega SRL</title>
-    <!-- Librerías Externas -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.9.0/jsrsasign-all-min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     
     <style>
         body { background: #e0e5ec; font-family: 'Segoe UI', Tahoma, Geneva, sans-serif; margin: 0; padding: 20px; display: flex; justify-content: center; }
         
-        /* Contenedor estricto para 1 sola hoja A4 */
         #report-sheet {
-            background: white;
-            width: 210mm;
-            height: 295mm; /* Fijo, levemente inferior a 297 para encajar exacto en PDF */
-            padding: 12mm 15mm; /* Márgenes reducidos para hacer espacio al cliente */
-            box-sizing: border-box;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.15);
-            position: relative;
-            overflow: hidden; 
+            background: white; width: 210mm; height: 295mm; padding: 12mm 15mm; 
+            box-sizing: border-box; box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+            position: relative; overflow: hidden; 
         }
 
         .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #0055AA; padding-bottom: 10px; margin-bottom: 15px; }
@@ -43,7 +36,6 @@
         .btn-descarga { background: #0055AA; color: white; border: none; padding: 12px 24px; font-size: 16px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-bottom: 20px; width: 100%; max-width: 210mm; transition: background 0.3s;}
         .btn-descarga:hover { background: #004488; }
 
-        /* Estilos del PopUp Modal */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(3px); }
         .modal-box { background: white; width: 90%; max-width: 400px; padding: 25px; border-radius: 12px; box-shadow: 0 15px 30px rgba(0,0,0,0.3); }
         .modal-box h2 { color: #0055AA; margin-top: 0; font-size: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px; }
@@ -60,24 +52,18 @@
 </head>
 <body>
 
-    <!-- DOM PRINCIPAL -->
     <div id="app-root" style="width: 100%; display: flex; flex-direction: column; align-items: center;"></div>
 
-    <!-- MODAL DE CLIENTE -->
     <div id="clientModal" class="modal-overlay">
         <div class="modal-box">
             <h2>Datos Adicionales (Opcional)</h2>
             <p style="font-size: 13px; color: #666; margin-bottom: 15px;">Complete estos datos para que aparezcan impresos en el PDF.</p>
-            
             <label>Nombre del Cliente / Empresa</label>
             <input type="text" id="cliName" placeholder="Ej: Transportes del Norte">
-            
             <label>Teléfono de Contacto</label>
             <input type="text" id="cliPhone" placeholder="Ej: +54 9 11 1234-5678">
-            
             <label>Observaciones del Ensayo</label>
             <textarea id="cliObs" rows="3" placeholder="Ej: Se reemplazó el filtro interno..."></textarea>
-            
             <div class="modal-buttons">
                 <button class="btn-cancel" onclick="cerrarModal()">Cancelar</button>
                 <button class="btn-confirm" onclick="procesarYGenerarPDF()">✔ Generar Archivo</button>
@@ -86,20 +72,21 @@
     </div>
 
     <script>
-        // ==============================================================
-        // LLAVE PÚBLICA DE REPORTES (Formato PKCS#8 Público / prime256v1)
-        // ==============================================================
-        const publicKeyPEM = `-----BEGIN PUBLIC KEY-----
-MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE/k2ZI89svibH1L9CWVLzCNDemNgD
-aN1NOedS4Zt+6PyZPeB+yeWiJsttCNZ6KncgLJxWnkVfj0zStekrOwUPzg==
------END PUBLIC KEY-----`;
-        // ==============================================================
+        // LLAVE PÚBLICA (Escrita en líneas separadas para evitar errores de tabulación)
+        const publicKeyPEM = 
+            "-----BEGIN PUBLIC KEY-----\n" +
+            "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE/k2ZI89svibH1L9CWVLzCNDemNgD\n" +
+            "aN1NOedS4Zt+6PyZPeB+yeWiJsttCNZ6KncgLJxWnkVfj0zStekrOwUPzg==\n" +
+            "-----END PUBLIC KEY-----\n";
 
-        function renderError() {
+        function renderError(detalle) {
             document.getElementById('app-root').innerHTML = `
                 <div style="background: white; padding: 40px; border-radius: 10px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border-top: 6px solid #dc3545; max-width: 500px; margin-top: 10vh;">
                     <h1 style="color: #dc3545; margin-top: 0;">❌ ACCESO DENEGADO</h1>
                     <p style="color: #666; font-size: 16px;">Este reporte no existe, la firma criptográfica es inválida o los datos fueron alterados.</p>
+                    <div style="margin-top: 20px; padding: 10px; background: #ffeeee; border: 1px solid #ffcccc; color: #aa0000; font-size: 12px; border-radius: 5px; text-align: left;">
+                        <strong>DIAGNÓSTICO TÉCNICO:</strong><br>${detalle}
+                    </div>
                 </div>
             `;
         }
@@ -116,32 +103,25 @@ aN1NOedS4Zt+6PyZPeB+yeWiJsttCNZ6KncgLJxWnkVfj0zStekrOwUPzg==
                         </div>
                         <div class="badge-valid">✔ ORIGEN AUTÉNTICO</div>
                     </div>
-
-                    <!-- Contenedor inyectable para el Cliente -->
                     <div id="client-section-container" style="display: none;"></div>
-
                     <div class="section-title">Datos del Componente</div>
-                    <!-- ORDEN SOLICITADO: Marca, Modelo, Aplicación, Tipo -->
                     <div class="grid-info">
                         <div class="info-box"><span class="info-label">Marca</span><span class="info-value">${datos.ma}</span></div>
                         <div class="info-box"><span class="info-label">Modelo / Código</span><span class="info-value">${datos.mo}</span></div>
                         <div class="info-box"><span class="info-label">Aplicación</span><span class="info-value">${datos.ap}</span></div>
                         <div class="info-box"><span class="info-label">Tipo</span><span class="info-value">${datos.t}</span></div>
                     </div>
-
                     <div class="section-title">Parámetros de Referencia</div>
                     <div class="grid-info">
                         <div class="info-box" style="border-left-color: #28a745;"><span class="info-label">Rango Esperado Mínimo</span><span class="info-value">${datos.rmn}</span></div>
                         <div class="info-box" style="border-left-color: #dc3545;"><span class="info-label">Rango Esperado Máximo</span><span class="info-value">${datos.rmx}</span></div>
                     </div>
-
                     <div class="section-title">Resultados del Ensayo</div>
                     <div class="results-grid">
                         <div class="result-card"><div style="font-size: 13px; color: #666;">Duración Prueba</div><div class="val">${datos.sg}</div><div style="font-size: 13px; color: #666;">Segundos</div></div>
                         <div class="result-card"><div style="font-size: 13px; color: #666;">Caudal Pico</div><div class="val">${datos.pk}</div><div style="font-size: 13px; color: #666;">L/min</div></div>
                         <div class="result-card highlight"><div style="font-size: 13px; color: #666;">Promedio Estable</div><div class="val">${datos.avg}</div><div style="font-size: 13px; color: #666;">L/min</div></div>
                     </div>
-                    
                     <div class="footer">
                         Documento generado automáticamente por Equipo Oficial Flujómetro Fega SRL.<br>
                         La integridad e inalterabilidad de los valores numéricos están garantizadas por Criptografía ECDSA SHA-256.
@@ -157,14 +137,8 @@ aN1NOedS4Zt+6PyZPeB+yeWiJsttCNZ6KncgLJxWnkVfj0zStekrOwUPzg==
             return 'Desconocido';
         }
 
-        // ================== LOGICA DEL MODAL Y PDF ==================
-        function abrirModal() {
-            document.getElementById('clientModal').style.display = 'flex';
-        }
-
-        function cerrarModal() {
-            document.getElementById('clientModal').style.display = 'none';
-        }
+        function abrirModal() { document.getElementById('clientModal').style.display = 'flex'; }
+        function cerrarModal() { document.getElementById('clientModal').style.display = 'none'; }
 
         function procesarYGenerarPDF() {
             const nom = document.getElementById('cliName').value.trim();
@@ -182,53 +156,52 @@ aN1NOedS4Zt+6PyZPeB+yeWiJsttCNZ6KncgLJxWnkVfj0zStekrOwUPzg==
                     </div>
                 `;
                 container.style.display = 'block';
-            } else {
-                container.style.display = 'none';
-            }
+            } else { container.style.display = 'none'; }
 
             cerrarModal();
 
-            // Pequeño delay para que el DOM se actualice antes de tomar la "foto" del PDF
             setTimeout(() => {
                 const elemento = document.getElementById('report-sheet');
                 const nombreArchivo = 'Reporte_Fega_' + (new URLSearchParams(window.location.search).get('mo') || 'Libre') + '.pdf';
-                
-                const opciones = {
-                    margin:       0,
-                    filename:     nombreArchivo,
-                    image:        { type: 'jpeg', quality: 1.0 },
-                    html2canvas:  { scale: 2, useCORS: true },
-                    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-                };
+                const opciones = { margin: 0, filename: nombreArchivo, image: { type: 'jpeg', quality: 1.0 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
                 html2pdf().set(opciones).from(elemento).save();
             }, 300);
         }
 
-        // ================== VERIFICACIÓN CRIPTOGRÁFICA ==================
         window.onload = function() {
             const qs = window.location.search;
-            if (!qs || !qs.includes('&s=')) return renderError();
+            
+            // 1. Verificar si hay parámetros en la URL
+            if (!qs) return renderError("La URL no contiene datos. Debes abrir esta página escaneando el código QR generado por el equipo, no haciendo doble clic en el archivo HTML.");
+            if (!qs.includes('&s=')) return renderError("La URL no contiene una firma válida (&s= no encontrado).");
 
             const partes = qs.substring(1).split('&s=');
             const urlRawData = partes[0];
-            const firmaB64URL = partes[1];
+            let firmaB64URL = partes[1];
 
-            if (!firmaB64URL || firmaB64URL.startsWith('ERROR_LLAVE')) return renderError();
+            if (!firmaB64URL || firmaB64URL.startsWith('ERROR_LLAVE')) return renderError("El ESP32 reportó un fallo al generar la firma: " + firmaB64URL);
 
-            // Decodificamos %20 a espacios reales para que el SHA-256 coincida exacto con el ESP32
             const payloadDecodificado = decodeURIComponent(urlRawData);
 
+            // Reconstruimos la base64 y limpiamos basuras (null terminators)
             let b64Firma = firmaB64URL.replace(/-/g, '+').replace(/_/g, '/');
+            b64Firma = b64Firma.replace(/[^A-Za-z0-9+/=]/g, ""); // Extrae solo caracteres base64 válidos
             while (b64Firma.length % 4 !== 0) b64Firma += '=';
 
             try {
+                // Convertir y verificar
                 const hexFirma = KJUR.crypto.Util.base64ToHex(b64Firma);
                 const sig = new KJUR.crypto.Signature({"alg": "SHA256withECDSA"});
-                sig.init(publicKeyPEM);
-                sig.updateString(payloadDecodificado); // Sometemos a prueba el payload
+                
+                try {
+                    sig.init(publicKeyPEM);
+                } catch (errKey) {
+                    return renderError("Fallo al inicializar la llave pública en JavaScript. Revisa el formato de la constante publicKeyPEM.");
+                }
+                
+                sig.updateString(payloadDecodificado); 
 
                 if (sig.verify(hexFirma)) {
-                    // Solo si pasó, extraemos los datos formales para pintar la UI
                     const params = new URLSearchParams(payloadDecodificado);
                     renderReporteAutorizado({
                         t: decodificarTipos(params.get('t')),
@@ -242,10 +215,10 @@ aN1NOedS4Zt+6PyZPeB+yeWiJsttCNZ6KncgLJxWnkVfj0zStekrOwUPzg==
                         sg: params.get('sg') || '0'
                     });
                 } else {
-                    renderError();
+                    renderError("La firma matemática ha sido rechazada. Los datos de la URL no coinciden con la firma del equipo. (" + payloadDecodificado + ")");
                 }
             } catch (e) {
-                renderError();
+                renderError("Error interno al procesar la criptografía: " + e.message);
             }
         };
     </script>
