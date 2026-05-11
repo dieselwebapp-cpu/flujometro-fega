@@ -15,8 +15,8 @@
         #report-sheet {
             background: white;
             width: 210mm;
-            height: 295mm;
-            padding: 12mm 15mm;
+            height: 295mm; /* Fijo, levemente inferior a 297 para encajar exacto en PDF */
+            padding: 12mm 15mm; /* Márgenes reducidos para hacer espacio al cliente */
             box-sizing: border-box;
             box-shadow: 0 10px 20px rgba(0,0,0,0.15);
             position: relative;
@@ -90,20 +90,19 @@
 
     <script>
         // ==============================================================
-        // LLAVE PÚBLICA DE REPORTES (A prueba de indentación de editores)
+        // LLAVE PÚBLICA DE REPORTES (Formato PKCS#8 Público / prime256v1)
         // ==============================================================
-        const publicKeyPEM = "-----BEGIN PUBLIC KEY-----\n" +
-                             "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE/k2ZI89svibH1L9CWVLzCNDemNgD\n" +
-                             "aN1NOedS4Zt+6PyZPeB+yeWiJsttCNZ6KncgLJxWnkVfj0zStekrOwUPzg==\n" +
-                             "-----END PUBLIC KEY-----\n";
+        const publicKeyPEM = `-----BEGIN PUBLIC KEY-----
+MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE/k2ZI89svibH1L9CWVLzCNDemNgD
+aN1NOedS4Zt+6PyZPeB+yeWiJsttCNZ6KncgLJxWnkVfj0zStekrOwUPzg==
+-----END PUBLIC KEY-----`;
         // ==============================================================
 
-        function renderError(detalle = "") {
+        function renderError() {
             document.getElementById('app-root').innerHTML = `
                 <div style="background: white; padding: 40px; border-radius: 10px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border-top: 6px solid #dc3545; max-width: 500px; margin-top: 10vh;">
                     <h1 style="color: #dc3545; margin-top: 0;">❌ ACCESO DENEGADO</h1>
                     <p style="color: #666; font-size: 16px;">Este reporte no existe, la firma criptográfica es inválida o los datos fueron alterados.</p>
-                    ${detalle ? `<p style="color: #aa0000; font-size: 12px; margin-top: 20px; background: #ffeeee; padding: 10px; border-radius: 5px;"><strong>Detalle Técnico:</strong><br>${detalle}</p>` : ''}
                 </div>
             `;
         }
@@ -121,9 +120,11 @@
                         <div class="badge-valid">✔ ORIGEN AUTÉNTICO</div>
                     </div>
 
+                    <!-- Contenedor inyectable para el Cliente -->
                     <div id="client-section-container" style="display: none;"></div>
 
                     <div class="section-title">Datos del Componente</div>
+                    <!-- ORDEN SOLICITADO: Marca, Modelo, Aplicación, Tipo -->
                     <div class="grid-info">
                         <div class="info-box"><span class="info-label">Marca</span><span class="info-value">${datos.ma}</span></div>
                         <div class="info-box"><span class="info-label">Modelo / Código</span><span class="info-value">${datos.mo}</span></div>
@@ -159,8 +160,14 @@
             return 'Desconocido';
         }
 
-        function abrirModal() { document.getElementById('clientModal').style.display = 'flex'; }
-        function cerrarModal() { document.getElementById('clientModal').style.display = 'none'; }
+        // ================== LOGICA DEL MODAL Y PDF ==================
+        function abrirModal() {
+            document.getElementById('clientModal').style.display = 'flex';
+        }
+
+        function cerrarModal() {
+            document.getElementById('clientModal').style.display = 'none';
+        }
 
         function procesarYGenerarPDF() {
             const nom = document.getElementById('cliName').value.trim();
@@ -169,6 +176,7 @@
             const container = document.getElementById('client-section-container');
 
             if (nom || tel || obs) {
+                // Se agrega font-family especifico al textarea de observaciones para prevenir desajustes de fuente en móviles
                 container.innerHTML = `
                     <div class="section-title" style="color: #0055AA;">Datos del Cliente</div>
                     <div class="grid-info" style="margin-bottom: 15px;">
@@ -184,11 +192,15 @@
 
             cerrarModal();
 
+            // Pequeño delay para que el DOM se actualice antes de tomar la "foto" del PDF
             setTimeout(() => {
                 const elemento = document.getElementById('report-sheet');
-                elemento.classList.add('pdf-export-mode');
                 
+                // Desactivamos temporalmente el escalado CSS para que el PDF salga en A4 puro
+                elemento.classList.add('pdf-export-mode');
+
                 const nombreArchivo = 'Reporte_Fega_' + (new URLSearchParams(window.location.search).get('mo') || 'Libre') + '.pdf';
+                
                 const opciones = {
                     margin:       0,
                     filename:     nombreArchivo,
@@ -197,40 +209,43 @@
                     jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
                 };
                 
+                // Una vez que termina de guardar el PDF, restauramos la vista del celular
                 html2pdf().set(opciones).from(elemento).save().then(() => {
                     elemento.classList.remove('pdf-export-mode');
                 });
             }, 300);
         }
 
+        // ================== VERIFICACIÓN CRIPTOGRÁFICA ==================
         window.onload = function() {
             const qs = window.location.search;
-            if (!qs || !qs.includes('&s=')) return renderError("La URL no contiene los parámetros o la firma requerida.");
+            if (!qs || !qs.includes('&s=')) return renderError();
 
             const partes = qs.substring(1).split('&s=');
             const urlRawData = partes[0];
             const firmaB64URL = partes[1];
 
-            if (!firmaB64URL || firmaB64URL.startsWith('ERROR_LLAVE')) return renderError("La firma del código QR indica un error de generación en el equipo.");
+            if (!firmaB64URL || firmaB64URL.startsWith('ERROR_LLAVE')) return renderError();
 
+            // Decodificamos %20 a espacios reales para que el SHA-256 coincida exacto con el ESP32
             const payloadDecodificado = decodeURIComponent(urlRawData);
 
             let b64Firma = firmaB64URL.replace(/-/g, '+').replace(/_/g, '/');
             while (b64Firma.length % 4 !== 0) b64Firma += '=';
 
             try {
-                if (typeof KJUR === 'undefined') {
-                    return renderError("La librería criptográfica (jsrsasign) no cargó correctamente. Verifique su conexión a internet.");
-                }
-
-                const hexFirma = KJUR.crypto.Util.base64ToHex(b64Firma);
+                // Función global correcta de jsrsasign para pasar base64 a Hexadecimal
+                const hexFirma = b64tohex(b64Firma);
+                
                 const sig = new KJUR.crypto.Signature({"alg": "SHA256withECDSA"});
                 sig.init(publicKeyPEM);
-                sig.updateString(payloadDecodificado);
+                sig.updateString(payloadDecodificado); // Sometemos a prueba el payload
 
                 if (sig.verify(hexFirma)) {
+                    // Si pasó, extraemos y formateamos los datos
                     const params = new URLSearchParams(payloadDecodificado);
                     
+                    // Lógica para formatear los segundos
                     let duracionSegundos = parseInt(params.get('sg') || '0', 10);
                     let tiempoFormateado = "";
                     if (duracionSegundos < 60) {
@@ -251,10 +266,10 @@
                         timeStr: tiempoFormateado
                     });
                 } else {
-                    renderError("La firma criptográfica no coincide con los datos (Falsificación detectada).");
+                    renderError();
                 }
             } catch (e) {
-                renderError("Excepción Javascript: " + e.message);
+                renderError();
             }
         };
     </script>
