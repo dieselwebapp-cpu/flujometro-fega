@@ -9,8 +9,11 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     
     <style>
-        body { background: #e0e5ec; font-family: 'Segoe UI', Tahoma, Geneva, sans-serif; margin: 0; padding: 20px; display: flex; justify-content: center; }
+        /* Agregado overflow-x: hidden para evitar que la pantalla se deslice a los costados en celulares */
+        body { background: #e0e5ec; font-family: 'Segoe UI', Tahoma, Geneva, sans-serif; margin: 0; padding: 20px 0; display: flex; flex-direction: column; align-items: center; overflow-x: hidden; }
         
+        #app-root { width: 100%; display: flex; flex-direction: column; align-items: center; overflow-x: hidden; }
+
         /* Contenedor estricto para 1 sola hoja A4 */
         #report-sheet {
             background: white;
@@ -40,7 +43,7 @@
         
         .footer { position: absolute; bottom: 12mm; left: 15mm; right: 15mm; font-size: 10px; color: #888; text-align: center; border-top: 1px solid #eee; padding-top: 8px; }
 
-        .btn-descarga { background: #0055AA; color: white; border: none; padding: 12px 24px; font-size: 16px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-bottom: 20px; width: 100%; max-width: 210mm; transition: background 0.3s;}
+        .btn-descarga { background: #0055AA; color: white; border: none; padding: 12px 24px; font-size: 16px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-bottom: 20px; width: 90%; max-width: 400px; transition: background 0.3s;}
         .btn-descarga:hover { background: #004488; }
 
         /* Estilos del PopUp Modal */
@@ -54,8 +57,10 @@
         .btn-cancel { background: #888; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; }
         .btn-confirm { background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; }
 
-        @media screen and (max-width: 850px) { #report-sheet { transform: scale(0.9); transform-origin: top center; margin-bottom: -10%; } }
-        @media screen and (max-width: 600px) { #report-sheet { transform: scale(0.65); transform-origin: top center; margin-bottom: -30%; } }
+        /* Múltiples escalas responsivas para asegurar que encaje en todas las pantallas sin desbordarse */
+        @media screen and (max-width: 850px) { #report-sheet { transform: scale(0.8); transform-origin: top center; margin-bottom: -20%; } }
+        @media screen and (max-width: 600px) { #report-sheet { transform: scale(0.55); transform-origin: top center; margin-bottom: -45%; } }
+        @media screen and (max-width: 450px) { #report-sheet { transform: scale(0.42); transform-origin: top center; margin-bottom: -58%; } .btn-descarga { font-size: 14px; padding: 12px 15px;} }
         
         /* Clase especial para desactivar el recorte visual justo antes de generar el PDF */
         .pdf-export-mode { transform: none !important; margin: 0 !important; }
@@ -64,7 +69,7 @@
 <body>
 
     <!-- DOM PRINCIPAL -->
-    <div id="app-root" style="width: 100%; display: flex; flex-direction: column; align-items: center;"></div>
+    <div id="app-root"></div>
 
     <!-- MODAL DE CLIENTE -->
     <div id="clientModal" class="modal-overlay">
@@ -192,7 +197,11 @@ aN1NOedS4Zt+6PyZPeB+yeWiJsttCNZ6KncgLJxWnkVfj0zStekrOwUPzg==
 
             cerrarModal();
 
-            // Pequeño delay para que el DOM se actualice antes de tomar la "foto" del PDF
+            // FORZAR EL SCROLL A CERO: 
+            // Esta es la solución crítica para que html2canvas no genere la mitad superior en blanco
+            // por culpa del teclado del celular moviendo la pantalla.
+            window.scrollTo(0, 0);
+
             setTimeout(() => {
                 const elemento = document.getElementById('report-sheet');
                 
@@ -205,7 +214,8 @@ aN1NOedS4Zt+6PyZPeB+yeWiJsttCNZ6KncgLJxWnkVfj0zStekrOwUPzg==
                     margin:       0,
                     filename:     nombreArchivo,
                     image:        { type: 'jpeg', quality: 1.0 },
-                    html2canvas:  { scale: 2, useCORS: true },
+                    // scrollY: 0 blinda la librería frente a rebotes de scroll en celulares
+                    html2canvas:  { scale: 2, useCORS: true, scrollY: 0 },
                     jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
                 };
                 
