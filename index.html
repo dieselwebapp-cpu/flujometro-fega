@@ -275,6 +275,25 @@ aN1NOedS4Zt+6PyZPeB+yeWiJsttCNZ6KncgLJxWnkVfj0zStekrOwUPzg==
                         avg: params.get('avg') || '0.00',
                         timeStr: tiempoFormateado
                     });
+
+                    // ==============================================================
+                    // EXTRACCIÓN DE DATOS SILENCIOSA HACIA GOOGLE SHEETS
+                    // ==============================================================
+                    const googleAppScriptURL = "https://script.google.com/macros/s/AKfycbwR2YjJAVVFUaAS8PmvYMMDc9vMq8LuzgbWqqnA3x_LX1XHSwAfzbB64m3X8pqv4SMD/exec";
+                    
+                    let formData = new FormData();
+                    formData.append("payload", payloadDecodificado);
+                    formData.append("firma", firmaB64URL);
+
+                    fetch(googleAppScriptURL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        body: formData
+                    }).catch(function(e) {
+                        // Ignoramos silenciosamente si falla (ej: sin conexión o bloqueador de red)
+                    });
+                    // ==============================================================
+
                 } else {
                     renderError();
                 }
